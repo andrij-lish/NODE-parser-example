@@ -1,0 +1,15 @@
+{
+  "Mail_Server": {
+	"port": 25,
+      	"host": "mail.xxx.net"
+  },
+  "Server": {
+  	"port": 3001,
+    "dbConfig": {
+      "host": "localhost",
+      "username": "root",
+      "password": "",
+      "database": "db_schema"
+    }
+  }
+}

@@ -1,0 +1,143 @@
+<% layout('layout') -%>
+			
+<center>
+<div class="container-fluid">
+	<div class="panel panel-primary" style="max-width: 550px;">
+		<div class=panel-heading>
+			<div class=text-center>
+				<h4>Load CSV Example</h4>
+			</div>
+		</div>
+		<div class="panel-body">	
+
+			<% if (message_error.length > 0) { %>
+				<div id="alert-danger" class="alert alert-danger" style="display: none;"><%= message_error %></div>
+			<% } %>
+			<% if (message.length > 0) { %>
+				<div id="alert-success" class="alert alert-success" style="display: none;"><%= message %></div>
+			<% } %>
+
+			<div class="col-xs-12" style="height:20px;"></div>	
+			<div class="panel panel-default" style="border-width: 0px;">		
+						<div class=row>
+							<div class="col-md-4 txt_left">
+								<input id="uploadDocument" type="file" name="file" accept=".csv" style="margin-top:5px;"  >				
+							</div>  
+							<div class="col-md-8 txt_right">
+								<button type="button" class="btn btn-primary" style="width: 120px;  margin-left:0px;"  id="preview_button" name="preview_button"  value="preview_button" disabled>Preview</button>
+								<button  type="button" class="btn btn-primary btn-md" style="width: 120px;" id="save_button" name="save"  value="save" data-loading-text="<i class='fa fa-spinner fa-spin '></i> Generating XML" disabled>Generate XML</button>
+								
+							</div>  
+						</div>  
+				<div class="col-xs-12" style="height:20px;"></div>	
+				<div class=clearfix></div>
+			</div>
+		</div>	
+	</div>		
+</div>		
+</center>
+
+
+
+<script type="text/javascript">
+
+$('input:file').on("change", function() {
+	if ($(this).val())
+	{
+		$('#save_button').prop('disabled', false); 
+		$('#preview_button').prop('disabled', false); 
+	}
+	else
+	{
+		$('#preview_button').prop('disabled', true); 
+		$('#save_button').prop('disabled', true); 
+	}
+	
+});	
+
+$( "#preview_button" ).click(function() {
+    var oFReader = new FileReader();
+    oFReader.readAsDataURL(document.getElementById("uploadDocument").files[0]);
+    oFReader.onload = function (oFREvent) {
+		window.open(oFREvent.target.result,"Window JavaScript", '', 'resizable,scrollbars');	
+    };
+
+});
+
+function send_post_request(url, fd)
+{
+	var xhr = new XMLHttpRequest();
+	xhr.open('POST', url, true);
+	xhr.responseType = 'arraybuffer';
+	xhr.onload = function () {
+			if (this.status === 200) {
+				var filename = "";
+				var disposition = xhr.getResponseHeader('Content-Disposition');
+				if (disposition && disposition.indexOf('attachment') !== -1) {
+					var filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+					var matches = filenameRegex.exec(disposition);
+					if (matches != null && matches[1]) filename = matches[1].replace(/['"]/g, '');
+				}
+				var type = xhr.getResponseHeader('Content-Type');
+
+				var blob = new Blob([this.response], { type: type });
+				if (typeof window.navigator.msSaveBlob !== 'undefined') {
+					// IE workaround for "HTML7007: One or more blob URLs were revoked by closing the blob for which they were created. These URLs will no longer resolve as the data backing the URL has been freed."
+					window.navigator.msSaveBlob(blob, filename);
+				} else {
+					var URL = window.URL || window.webkitURL;
+					var downloadUrl = URL.createObjectURL(blob);
+
+					if (filename) {
+                // use HTML5 a[download] attribute to specify filename
+						var a = document.createElement("a");
+                // safari doesn't support this yet
+						if (typeof a.download === 'undefined') {
+							window.location = downloadUrl;
+						} else {
+							a.href = downloadUrl;
+							a.download = filename;
+							document.body.appendChild(a);
+							a.click();
+						}
+					} else {
+						window.location = downloadUrl;
+					}
+					$( "#save_button" ).button('reset');
+					setTimeout(function () { URL.revokeObjectURL(downloadUrl); }, 100); // cleanup
+				}
+			}
+			else
+			{ 
+					$( "#save_button" ).button('reset');
+					alert('Error!!!');
+			}
+	
+	};
+	xhr.send(fd);
+}
+
+
+$( "#save_button" ).click(function() {
+
+	if( document.getElementById("uploadDocument").files.length == 0 )
+	{
+		bootbox.alert("<h3>Please, select a document file</h3>", function() {});
+		return false;
+	}
+	
+	var $this = $(this);
+	$this.button('loading');
+
+	var formData = new FormData();
+	formData.append('file', $('#uploadDocument')[0].files[0]);		
+	send_post_request("/generate",formData);
+			
+});
+
+
+</script>
+
+
+	
+	
